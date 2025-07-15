@@ -17,7 +17,7 @@ export const SCENARIO_ID_TYPE: ScenarioIdType = {
 };
 
 export const MSDL_OPTIONS_TYPE: MsdlOptionsType = {
-  MSDLVersion: "1.0.0"
+  MSDLVersion: "1.0.0",
 };
 
 export const EMPTY_SCENARIO = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
