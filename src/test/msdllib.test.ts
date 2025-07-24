@@ -1,22 +1,23 @@
-import { describe, it, expect, beforeEach, beforeAll } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import {
   EnumCommandRelationshipType,
   EquipmentItem,
   ForceSide,
   MilitaryScenario,
+  MsdlOptions,
   ScenarioId,
   MsdlOptions,
 } from "../index.js";
 import {
   EMPTY_SCENARIO,
-  EQUIPMENT_NETN,
-  parseFromString,
+  MSDL_OPTIONS_TYPE,
   SCENARIO_ID_TYPE,
   MSDL_OPTIONS_TYPE,
   UNIT_TEMPLATE,
 } from "./testdata.js";
 import fs from "fs/promises";
 import {
+  countXmlTagOccurrences,
   loadNetnTestScenario,
   loadNetnTestScenarioAsString,
   loadTestScenario,
@@ -28,7 +29,6 @@ import {
   createXMLElement,
   getTagElement,
   getTagValue,
-  xmlToString,
 } from "../lib/domutils.js";
 
 describe("MilitaryScenario class", () => {
@@ -297,6 +297,190 @@ describe("MilitaryScenario with NETN", () => {
     const str = scenario.toString();
     const originalScenario = loadNetnTestScenarioAsString();
     expect(str.replace(/\s+/g, "")).toBe(originalScenario.replace(/\s+/g, ""));
+  });
+
+  describe("its deployment", () => {
+    const unitHQ = "7a81590c-febb-11e7-8be5-0ed5f89f718b";
+    const equipment111 = "f9ee8509-2dcd-11e2-be2b-000c294c9df8";
+    const simB = "e3f1c2d4-5b6a-4c7d-8e9f-0a1b2c3d4e5f";
+    const simC = "9b8c7d6e-5f4a-3b2c-1d0e-9f8e7d6c5b4a";
+    let scenario: MilitaryScenario;
+    beforeAll(() => {
+      scenario = loadNetnTestScenario();
+    });
+    it("should list 3 federates", () => {
+      expect(scenario.deployment?.federates).toHaveLength(3);
+    });
+    it("should have unit HQ at SIM B", () => {
+      const federate = scenario.getFederateOfUnit(unitHQ);
+      expect(federate).toBeDefined();
+      expect(federate?.name).toBe("SIM B");
+      const xml = federate?.toString();
+      expect(xml?.includes(unitHQ)).toBeTruthy();
+    });
+    it("SIM B should have 2 units", () => {
+      const federate = scenario.getFederateById(simB);
+      expect(federate).toBeDefined();
+      expect(federate?.units).toHaveLength(2);
+      const xml = federate?.toString() || "";
+      expect(countXmlTagOccurrences(xml, "Unit")).toBe(2);
+    });
+    it("SIM C should have 4 units", () => {
+      const federate = scenario.getFederateById(simC);
+      expect(federate).toBeDefined();
+      expect(federate?.units).toHaveLength(4);
+      const xml = federate?.toString() || "";
+      expect(countXmlTagOccurrences(xml, "Unit")).toBe(4);
+    });
+    describe("when moving unit HQ to SIM C", () => {
+      beforeAll(() => {
+        scenario.assignUnitToFederate(unitHQ, simC);
+      });
+      it("SIM C should have unit HQ", () => {
+        const federate = scenario.getFederateOfUnit(unitHQ);
+        expect(federate).toBeDefined();
+        expect(federate?.name).toBe("SIM C");
+        const xml = federate?.toString();
+        expect(xml?.includes(unitHQ)).toBeTruthy();
+      });
+      it("SIM B should not have unit HQ", () => {
+        const federate = scenario.getFederateById(simB);
+        expect(federate?.units).not.toContain(unitHQ);
+        const xml = federate?.toString();
+        expect(xml?.includes(unitHQ)).toBeFalsy();
+      });
+      it("SIM C should have 5 units", () => {
+        const federate = scenario.getFederateById(simC);
+        expect(federate).toBeDefined();
+        expect(federate?.units).toHaveLength(5);
+        const xml = federate?.toString() || "";
+        expect(countXmlTagOccurrences(xml, "Unit")).toBe(5);
+      });
+      it("SIM B should have 1 unit", () => {
+        const federate = scenario.getFederateById(simB);
+        expect(federate).toBeDefined();
+        expect(federate?.units).toHaveLength(1);
+        const xml = federate?.toString() || "";
+        expect(countXmlTagOccurrences(xml, "Unit")).toBe(1);
+      });
+    });
+    describe("when moving all units to SIM C", () => {
+      beforeAll(() => {
+        scenario.assignAllUnitsToFederate(simB, simC);
+      });
+      it("SIM C should have unit HQ", () => {
+        const federate = scenario.getFederateOfUnit(unitHQ);
+        expect(federate).toBeDefined();
+        expect(federate?.name).toBe("SIM C");
+        const xml = federate?.toString();
+        expect(xml?.includes(unitHQ)).toBeTruthy();
+      });
+      it("SIM B should not have unit HQ", () => {
+        const federate = scenario.getFederateById(simB);
+        expect(federate?.units).not.toContain(unitHQ);
+        const xml = federate?.toString();
+        expect(xml?.includes(unitHQ)).toBeFalsy();
+      });
+      it("SIM C should have 6 units", () => {
+        const federate = scenario.getFederateById(simC);
+        expect(federate).toBeDefined();
+        expect(federate?.units).toHaveLength(6);
+        const xml = federate?.toString() || "";
+        expect(countXmlTagOccurrences(xml, "Unit")).toBe(6);
+      });
+      it("SIM B should have 0 units", () => {
+        const federate = scenario.getFederateById(simB);
+        expect(federate).toBeDefined();
+        expect(federate?.units).toHaveLength(0);
+        const xml = federate?.toString() || "";
+        expect(countXmlTagOccurrences(xml, "Unit")).toBe(0);
+      });
+    });
+    it("SIM C should have equipment 111 ", () => {
+      const federate = scenario.getFederateOfEquipment(equipment111);
+      expect(federate).toBeDefined();
+      expect(federate?.name).toBe("SIM C");
+      const xml = federate?.toString();
+      expect(xml?.includes(equipment111)).toBeTruthy();
+    });
+    it("SIM C should have 2 equipment items", () => {
+      const federate = scenario.getFederateById(simC);
+      expect(federate).toBeDefined();
+      expect(federate?.equipment).toHaveLength(2);
+      const xml = federate?.toString() || "";
+      expect(countXmlTagOccurrences(xml, "EquipmentItem")).toBe(2);
+    });
+    it("SIM B should have no equipment items", () => {
+      const federate = scenario.getFederateById(simB);
+      expect(federate).toBeDefined();
+      expect(federate?.equipment).toHaveLength(0);
+      const xml = federate?.toString() || "";
+      expect(countXmlTagOccurrences(xml, "EquipmentItem")).toBe(0);
+    });
+    describe("when moving equipment 111 to SIM B", () => {
+      beforeAll(() => {
+        scenario.assignEquipmentItemToFederate(equipment111, simB);
+      });
+      it("SIM B should have equipment 111", () => {
+        const federate = scenario.getFederateOfEquipment(equipment111);
+        expect(federate).toBeDefined();
+        expect(federate?.name).toBe("SIM B");
+        const xml = federate?.toString();
+        expect(xml?.includes(equipment111)).toBeTruthy();
+      });
+      it("SIM C should not have equipment 111", () => {
+        const federate = scenario.getFederateById(simC);
+        expect(federate?.equipment).not.toContain(equipment111);
+        const xml = federate?.toString();
+        expect(xml?.includes(equipment111)).toBeFalsy();
+      });
+      it("SIM B should have 1 equipment item", () => {
+        const federate = scenario.getFederateById(simB);
+        expect(federate).toBeDefined();
+        expect(federate?.equipment).toHaveLength(1);
+        const xml = federate?.toString() || "";
+        expect(countXmlTagOccurrences(xml, "EquipmentItem")).toBe(1);
+      });
+      it("SIM C should have 1 equipment item", () => {
+        const federate = scenario.getFederateById(simC);
+        expect(federate).toBeDefined();
+        expect(federate?.equipment).toHaveLength(1);
+        const xml = federate?.toString() || "";
+        expect(countXmlTagOccurrences(xml, "EquipmentItem")).toBe(1);
+      });
+    });
+    describe("when moving all equipment from SIM C to SIM B", () => {
+      beforeAll(() => {
+        scenario.assignAllEquipmentToFederate(simC, simB);
+      });
+      it("SIM B should have equipment 111", () => {
+        const federate = scenario.getFederateOfEquipment(equipment111);
+        expect(federate).toBeDefined();
+        expect(federate?.name).toBe("SIM B");
+        const xml = federate?.toString();
+        expect(xml?.includes(equipment111)).toBeTruthy();
+      });
+      it("SIM C should not have equipment 111", () => {
+        const federate = scenario.getFederateById(simC);
+        expect(federate?.equipment).not.toContain(equipment111);
+        const xml = federate?.toString();
+        expect(xml?.includes(equipment111)).toBeFalsy();
+      });
+      it("SIM B should have 2 equipment items", () => {
+        const federate = scenario.getFederateById(simB);
+        expect(federate).toBeDefined();
+        expect(federate?.equipment).toHaveLength(2);
+        const xml = federate?.toString() || "";
+        expect(countXmlTagOccurrences(xml, "EquipmentItem")).toBe(2);
+      });
+      it("SIM C should have no equipment item", () => {
+        const federate = scenario.getFederateById(simC);
+        expect(federate).toBeDefined();
+        expect(federate?.equipment).toHaveLength(0);
+        const xml = federate?.toString() || "";
+        expect(countXmlTagOccurrences(xml, "EquipmentItem")).toBe(0);
+      });
+    });
   });
 });
 
@@ -677,5 +861,83 @@ describe("Add/remove ForceSide", () => {
       expect(scenario.forceSideCount).toBe(0);
       expect(scenario.forceSides.length).toBe(0);
     });
+  });
+});
+
+describe("MilitaryScenario.getItemHierarchy", () => {
+  it("should return a hierarchy of equipment, units and forcesides", () => {
+    let scenario = loadTestScenario();
+    let { hierarchy, forceSide } = scenario.getItemHierarchy(
+      "f9ee8509-2dcd-11e2-be2b-000c294c9df8",
+    );
+    expect(hierarchy).toBeDefined();
+    expect(hierarchy.length).toBe(2);
+    expect(hierarchy[0]).toBeInstanceOf(Unit);
+    expect(hierarchy[1]).toBeInstanceOf(Unit);
+    const rootUnit = hierarchy[0] as Unit;
+    expect(rootUnit.label).toBe("HQ");
+    const parentUnit = hierarchy[1] as Unit;
+    expect(parentUnit.label).toBe("1th");
+    expect(forceSide).toBeInstanceOf(Array);
+    expect(forceSide.length).toBe(1);
+    const side = forceSide[0]!;
+    expect(side).toBeInstanceOf(ForceSide);
+    expect(side.name).toBe("Friendly");
+  });
+
+  it("should include itself if the includeItem option is true", () => {
+    let scenario = loadTestScenario();
+    let { hierarchy, forceSide } = scenario.getItemHierarchy(
+      "f9ee8509-2dcd-11e2-be2b-000c294c9df8",
+      { includeItem: true },
+    );
+    expect(hierarchy).toBeDefined();
+    expect(hierarchy.length).toBe(3);
+    expect(hierarchy[0]).toBeInstanceOf(Unit);
+    expect(hierarchy[1]).toBeInstanceOf(Unit);
+    expect(hierarchy[2]).toBeInstanceOf(EquipmentItem);
+    const equipment = hierarchy[2] as EquipmentItem;
+    expect(equipment.label).toBe("111");
+  });
+
+  it("should accept a Unit, EquipmentItem and ForceSide as input", () => {
+    let scenario = loadTestScenario();
+    const unit = scenario.getUnitById("7a81590c-febb-11e7-8be5-0ed5f89f718b")!;
+    expect(unit.label).toBe("HQ");
+    let { hierarchy, forceSide } = scenario.getItemHierarchy(unit, {
+      includeItem: true,
+    });
+
+    expect(hierarchy).toBeDefined();
+    expect(hierarchy.length).toBe(1);
+    const equipment = scenario.getEquipmentById(
+      "f9ee8509-2dcd-11e2-be2b-000c294c9df8",
+    )!;
+    expect(equipment.label).toBe("111");
+    const res = scenario.getItemHierarchy(equipment, { includeItem: true });
+    expect(res.hierarchy.length).toBe(3);
+    const fs = scenario.getForceSideById(
+      "e7aebc43-2dcd-11e2-be2b-000c294c9df8",
+    )!;
+    expect(fs.name).toBe("Army");
+    const res2 = scenario.getItemHierarchy(fs, { includeItem: true });
+    expect(res2.hierarchy.length).toBe(0);
+    expect(res2.forceSide.length).toBe(2);
+  });
+
+  it("should return side and force if available", () => {
+    const scenario = loadTestScenario();
+    const rootUnit = scenario.getUnitById(
+      "7a815ba0-febb-11e7-8be5-0ed5f89f718b",
+    )!;
+    expect(rootUnit?.label).toBe("HQ2");
+    const { hierarchy, forceSide } = scenario.getItemHierarchy(rootUnit);
+    expect(hierarchy.length).toBe(0);
+    expect(forceSide).toBeInstanceOf(Array);
+    expect(forceSide.length).toBe(2);
+    expect(forceSide[0]?.name).toBe("Hostile");
+    expect(forceSide[1]?.name).toBe("Army");
+    expect(forceSide[0]?.isSide).toBe(true);
+    expect(forceSide[1]?.isSide).toBe(false);
   });
 });

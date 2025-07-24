@@ -6,6 +6,7 @@ import {
   getTagElement,
   getTagElements,
   getTagValue,
+  removeTagValue,
 } from "./domutils.js";
 import { Unit } from "./units.js";
 import {
@@ -22,6 +23,19 @@ import { Environment } from "./environment.js";
 export type SetUnitForceRelationTypeOptions = {
   commandRelationshipType?: EnumCommandRelationshipType;
   target?: DropTarget;
+};
+
+export type InstructionType = "make-child" | "reorder-above" | "reorder-below";
+export type ForceSideRelationType = {};
+export type UnitRelationType = {
+  commandRelationshipType?: EnumCommandRelationshipType;
+};
+
+export type SetItemRelationOptions = {
+  source: Unit | EquipmentItem | string;
+  target: Unit | EquipmentItem | ForceSide | string;
+  instruction?: InstructionType;
+  // relationData?: ForceSideRelationType | UnitRelationType;
 };
 
 /**
@@ -46,16 +60,11 @@ export interface MilitaryScenarioType {
   getEquipmentById(objectHandle: string): EquipmentItem | undefined;
 
   addUnit(unit: Unit): void;
-  addEquipmentItem(equipmentitem: EquipmentItem): void;
+  addEquipmentItem(equipmentItem: EquipmentItem): void;
   removeUnit(objectHandle: string): void;
   removeEquipmentItem(objectHandle: string): void;
   addForceSide(side: ForceSide): void;
   removeForceSide(objectHandle: string): void;
-
-  getUnitHierarchy(unitOrObjectHandle: Unit | string): {
-    forceSide: ForceSide;
-    hierarchy: Unit[];
-  };
 
   setUnitForceRelation(
     unitOrObjectHandle: Unit | string,
@@ -66,6 +75,18 @@ export interface MilitaryScenarioType {
     unitOrObjectHandle: Unit | string,
     superiorOrObjectHandle: ForceSide | string,
   ): void;
+
+  getItemParent(
+    item: Unit | EquipmentItem | ForceSide,
+  ): Unit | EquipmentItem | ForceSide | undefined;
+
+  getItemHierarchy(
+    itemOrObjectHandle: Unit | EquipmentItem | ForceSide | string,
+    options?: { includeItem?: boolean },
+  ): {
+    forceSide: ForceSide[];
+    hierarchy: (Unit | EquipmentItem | ForceSide)[];
+  };
 
   toString(): string;
 }
@@ -127,6 +148,7 @@ export class MilitaryScenario implements MilitaryScenarioType {
     return Object.keys(this.forceSideMap).length;
   }
 
+  /** @deprecated Use getItemParent instead */
   getUnitParent(unit: Unit): Unit | ForceSide | undefined {
     return (
       this.unitMap[unit.superiorHandle] ??
@@ -134,6 +156,21 @@ export class MilitaryScenario implements MilitaryScenarioType {
     );
   }
 
+  getItemParent(
+    item: Unit | EquipmentItem | ForceSide,
+  ): Unit | ForceSide | undefined {
+    if (item instanceof Unit || item instanceof EquipmentItem) {
+      return (
+        this.unitMap[item.superiorHandle] ??
+        this.forceSideMap[item.superiorHandle]
+      );
+    } else {
+      const superiorHandle = item.superiorHandle;
+      if (superiorHandle) return this.forceSideMap[superiorHandle];
+    }
+  }
+
+  /** @deprecated */
   getUnitHierarchy(unitOrObjectHandle: Unit | string) {
     let unit: Unit | undefined;
     if (typeof unitOrObjectHandle === "string") {
@@ -159,6 +196,45 @@ export class MilitaryScenario implements MilitaryScenarioType {
     }
 
     helper(unit);
+
+    return { forceSide, hierarchy };
+  }
+
+  getItemHierarchy(
+    itemOrObjectHandle: Unit | EquipmentItem | ForceSide | string,
+    { includeItem = false }: { includeItem?: boolean } = {},
+  ) {
+    const item = this.getItemInstance(itemOrObjectHandle);
+    if (!item) {
+      throw new Error("Item not found");
+    }
+
+    let that = this;
+    let hierarchy: (Unit | EquipmentItem | ForceSide)[] = [];
+    let forceSide: ForceSide[] = [];
+    if (includeItem) {
+      if (item instanceof Unit || item instanceof EquipmentItem) {
+        hierarchy.push(item);
+      } else {
+        forceSide.push(item);
+      }
+    }
+
+    function helper(item: Unit | EquipmentItem | ForceSide) {
+      let p = that.getItemParent(item);
+      if (p instanceof Unit || p instanceof EquipmentItem) {
+        hierarchy.push(p);
+      } else if (p instanceof ForceSide) {
+        forceSide.push(p);
+      }
+      if (p) {
+        helper(p);
+      }
+    }
+
+    helper(item);
+    hierarchy.reverse();
+    forceSide.reverse();
 
     return { forceSide, hierarchy };
   }
@@ -373,6 +449,18 @@ export class MilitaryScenario implements MilitaryScenarioType {
     return this.unitMap[objectHandle] ?? this.equipmentMap[objectHandle];
   }
 
+  getFederateById(objectHandle: string): Federate | undefined {
+    return this.deployment?.getFederateById(objectHandle);
+  }
+
+  getFederateOfUnit(objectHandle: string): Federate | undefined {
+    return this.deployment?.getFederateOfUnit(objectHandle);
+  }
+
+  getFederateOfEquipment(objectHandle: string): Federate | undefined {
+    return this.deployment?.getFederateOfEquipment(objectHandle);
+  }
+
   private updateSidesRootUnits() {
     for (let side of this.sides) {
       for (let force of side.forces) {
@@ -469,7 +557,7 @@ export class MilitaryScenario implements MilitaryScenarioType {
   private addForceSideToElement(side: ForceSide) {
     const sidesEl = getTagElement(this.element, "ForceSides");
     if (!sidesEl)
-      throw new Error("No <ForceSides> element found to add equipmentitem to");
+      throw new Error("No <ForceSides> element found to add equipmentItem to");
     sidesEl.appendChild(side.element);
   }
 
@@ -489,6 +577,7 @@ export class MilitaryScenario implements MilitaryScenarioType {
   addFederate(fed: Federate): void {
     this.assertDeployment();
     this.deployment!.addFederate(fed);
+    this.updateDeploymentElement();
   }
 
   private assertDeployment() {
@@ -500,11 +589,82 @@ export class MilitaryScenario implements MilitaryScenarioType {
     this.deployment = new Deployment(deploymentEl);
   }
 
+  private updateDeploymentElement() {
+    removeTagValue(this.element!, Deployment.TAG_NAME);
+    this.element!.appendChild(this.deployment!.element);
+  }
+
+  assignUnitToFederate(unitHandle: string, federateHandle: string) {
+    if (!this.deployment) return;
+    const unit = this.getUnitById(unitHandle);
+    const federate = this.getFederateById(federateHandle);
+    if (!unit) {
+      throw new Error(`Unit ${unitHandle} not found`);
+    }
+    if (!federate) {
+      throw new Error(`Federate ${federateHandle} not found`);
+    }
+    this.deployment.assignUnitToFederate(federateHandle, unitHandle);
+    this.updateDeploymentElement();
+  }
+
+  assignEquipmentItemToFederate(
+    equipmentItemHandle: string,
+    federateHandle: string,
+  ) {
+    const equipmentItem = this.getEquipmentById(equipmentItemHandle);
+    const federate = this.getFederateById(federateHandle);
+    if (!equipmentItem) {
+      throw new Error(`EquipmentItem ${equipmentItemHandle} not found`);
+    }
+    if (!federate) {
+      throw new Error(`Federate ${federateHandle} not found`);
+    }
+    const oldFederate = this.getFederateOfEquipment(equipmentItemHandle);
+    if (oldFederate) oldFederate.removeEquipmentItem(equipmentItemHandle);
+    federate.addEquipmentItem(equipmentItemHandle);
+    this.updateDeploymentElement();
+  }
+
+  assignAllUnitsToFederate(
+    fromFederateHandle: string,
+    toFederateHandle: string,
+  ) {
+    const fromFederate = this.getFederateById(fromFederateHandle);
+    const toFederate = this.getFederateById(toFederateHandle);
+    if (!toFederate) {
+      throw new Error(`Unit ${toFederateHandle} not found`);
+    }
+    if (!fromFederate) {
+      throw new Error(`Federate ${fromFederateHandle} not found`);
+    }
+    const units = fromFederate.removeAllUnits();
+    toFederate.addAllUnits(units);
+    this.updateDeploymentElement();
+  }
+
+  assignAllEquipmentToFederate(
+    fromFederateHandle: string,
+    toFederateHandle: string,
+  ) {
+    const fromFederate = this.getFederateById(fromFederateHandle);
+    const toFederate = this.getFederateById(toFederateHandle);
+    if (!toFederate) {
+      throw new Error(`Unit ${toFederateHandle} not found`);
+    }
+    if (!fromFederate) {
+      throw new Error(`Federate ${fromFederateHandle} not found`);
+    }
+    const equipment = fromFederate.removeAllEquipment();
+    toFederate.addAllEquipment(equipment);
+    this.updateDeploymentElement();
+  }
+
   private detectNETN() {
     const netnElement =
       getTagElement(this.element, "EntityType") ??
       getTagElement(this.element, "Holdings") ??
-      getTagElement(this.element, "Deployment");
+      getTagElement(this.element, Deployment.TAG_NAME);
     this._isNETN = !!netnElement;
   }
 
@@ -570,7 +730,7 @@ export class MilitaryScenario implements MilitaryScenarioType {
       throw new Error("No <Organizations> element found to remove unit from");
     const equipmentsEl = getTagElement(organizationsEl, "Equipment");
     if (!equipmentsEl)
-      throw new Error("No <Equipment> element found to add equipmentitem to");
+      throw new Error("No <Equipment> element found to add equipmentItem to");
     equipmentsEl.appendChild(equipment.element);
   }
 
@@ -581,7 +741,7 @@ export class MilitaryScenario implements MilitaryScenarioType {
     const equipmentsEl = getTagElement(organizationsEl, "Equipment");
     if (!equipmentsEl)
       throw new Error(
-        "No <Equipment> element found to remove equipmentitem from",
+        "No <Equipment> element found to remove equipmentItem from",
       );
     let equipmentElements = getTagElements(equipmentsEl, "EquipmentItem");
     let equipmentItemToRemove = equipmentElements.find(
@@ -617,6 +777,118 @@ export class MilitaryScenario implements MilitaryScenarioType {
     } else {
       unit.setForceRelation(superior);
       superior.rootUnits.push(unit);
+    }
+  }
+
+  setItemRelation({
+    source,
+    target,
+    instruction = "make-child",
+  }: SetItemRelationOptions) {
+    const sourceItem = this.getItemInstance(source);
+    const targetItem = this.getItemInstance(target);
+
+    if (!sourceItem || !targetItem) {
+      throw new Error("Source or target item not found");
+    }
+    if (sourceItem.objectHandle === targetItem.objectHandle) {
+      throw new Error("Source and target items cannot be the same");
+    }
+    if (sourceItem instanceof EquipmentItem) {
+      const equipmentElement = getTagElement(this.element, "Equipment");
+      this.removeUnitOrEquipmentFromSuperior(sourceItem);
+      // Add to new superior
+      if (
+        instruction === "make-child" &&
+        (targetItem instanceof Unit || targetItem instanceof ForceSide)
+      ) {
+        sourceItem.setHoldingOrganization(targetItem);
+        targetItem.equipment.push(sourceItem);
+        equipmentElement?.appendChild(sourceItem.element);
+        return;
+      }
+      if (targetItem instanceof EquipmentItem) {
+        // Reorder equipment items
+        const targetSuperior = this.getItemParent(targetItem);
+        if (!targetSuperior) return;
+        sourceItem.setHoldingOrganization(targetSuperior);
+        const targetIndex = targetSuperior?.equipment.indexOf(targetItem);
+        if (targetIndex < 0) return;
+        if (instruction === "reorder-above") {
+          targetSuperior.equipment.splice(targetIndex, 0, sourceItem);
+          targetItem.element.insertAdjacentElement(
+            "beforebegin",
+            sourceItem.element,
+          );
+        } else if (instruction === "reorder-below") {
+          targetSuperior.equipment.splice(targetIndex + 1, 0, sourceItem);
+          targetItem.element.insertAdjacentElement(
+            "afterend",
+            sourceItem.element,
+          );
+        }
+      }
+    } else if (sourceItem instanceof Unit) {
+      if (targetItem instanceof EquipmentItem) {
+        throw new Error("Cannot make a Unit a child of EquipmentItem");
+      }
+      const unitsElement = getTagElement(this.element, "Units");
+      this.removeUnitOrEquipmentFromSuperior(sourceItem);
+      // Add to new superior
+      if (instruction === "make-child") {
+        if (targetItem instanceof Unit) {
+          sourceItem.setForceRelation(targetItem);
+          targetItem.subordinates.push(sourceItem);
+        } else {
+          sourceItem.setForceRelation(targetItem);
+          targetItem.rootUnits.push(sourceItem);
+        }
+        unitsElement?.appendChild(sourceItem.element);
+      } else if (
+        (instruction === "reorder-above" || instruction === "reorder-below") &&
+        targetItem instanceof Unit
+      ) {
+        const targetSuperior = this.getItemParent(targetItem);
+        if (targetSuperior instanceof Unit) {
+          sourceItem.setForceRelation(targetSuperior);
+
+          const targetIndex = targetSuperior?.subordinates.indexOf(targetItem);
+          if (targetIndex < 0) return;
+          instruction === "reorder-above"
+            ? targetSuperior.subordinates.splice(targetIndex, 0, sourceItem)
+            : targetSuperior.subordinates.splice(
+                targetIndex + 1,
+                0,
+                sourceItem,
+              );
+        } else if (targetSuperior instanceof ForceSide) {
+          sourceItem.setForceRelation(targetSuperior);
+          const targetIndex = targetSuperior.rootUnits.indexOf(targetItem);
+          if (targetIndex < 0) return;
+          instruction === "reorder-above"
+            ? targetSuperior.rootUnits.splice(targetIndex, 0, sourceItem)
+            : targetSuperior.rootUnits.splice(targetIndex + 1, 0, sourceItem);
+        }
+        targetItem.element.insertAdjacentElement(
+          instruction === "reorder-above" ? "beforebegin" : "afterend",
+          sourceItem.element,
+        );
+      }
+    }
+  }
+
+  // getItemRelation() {}
+
+  getItemInstance(
+    itemOrObjectHandle: Unit | EquipmentItem | ForceSide | string,
+  ): Unit | EquipmentItem | ForceSide | undefined {
+    if (typeof itemOrObjectHandle === "string") {
+      return (
+        this.getUnitOrForceSideById(itemOrObjectHandle) ??
+        this.getEquipmentById(itemOrObjectHandle)
+      );
+    } else {
+      return itemOrObjectHandle;
     }
   }
 

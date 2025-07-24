@@ -194,6 +194,30 @@ describe("Unit class", () => {
       const unit = new Unit(parseFromString(UNIT_MGRS));
       expect(unit.getAffiliation()).toBe(StandardIdentity.NoneSpecified);
     });
+
+    it("should be able to set affiliation", () => {
+      const unit = new Unit(parseFromString(UNIT_MGRS));
+      expect(unit.getAffiliation()).toBe(StandardIdentity.NoneSpecified);
+      unit.setAffiliation(StandardIdentity.Hostile);
+      expect(unit.getAffiliation()).toBe(StandardIdentity.Hostile);
+    });
+
+    it("should change affiliation of subordinates if the setSubordinates option is set", () => {
+      const scenario = loadTestScenario();
+      const unit = scenario.rootUnits[0]!;
+      expect(unit.getAffiliation()).toBe(StandardIdentity.Friend);
+      unit.setAffiliation(StandardIdentity.Hostile, { recursive: true });
+      expect(unit.getAffiliation()).toBe(StandardIdentity.Hostile);
+      for (const subordinate of unit.subordinates) {
+        expect(subordinate.getAffiliation()).toBe(StandardIdentity.Hostile);
+        for (const equipment of subordinate.equipment) {
+          expect(equipment.getAffiliation()).toBe(StandardIdentity.Hostile);
+        }
+        for (const childUnit of subordinate.subordinates) {
+          expect(childUnit.getAffiliation()).toBe(StandardIdentity.Hostile);
+        }
+      }
+    });
   });
 
   describe("when calling toGeoJson", () => {
@@ -282,6 +306,14 @@ describe("New Unit", () => {
     expect(unit.name).toBe("Another name");
     expect(unit.disposition?.speed).toBe(42);
     expect(unit.disposition?.directionOfMovement).toBe(1);
+    expect(unit.disposition?.location).toEqual([5.0, 54.0]);
+    unit.disposition = UnitDisposition.fromModel({
+      speed: 9,
+      directionOfMovement: 99,
+      location: [5.0, 54.0],
+    });
+    expect(unit.disposition?.speed).toBe(9);
+    expect(unit.disposition?.directionOfMovement).toBe(99);
     expect(unit.disposition?.location).toEqual([5.0, 54.0]);
     unit.disposition = undefined;
     expect(unit.disposition).toBeUndefined();

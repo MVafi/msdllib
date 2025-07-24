@@ -1,6 +1,7 @@
-﻿<MilitaryScenario xmlns="urn:sisostds:scenario:military:data:draft:msdl:1" xmlns:modelID="http://www.sisostds.org/schemas/modelID">
+<MilitaryScenario xmlns="urn:sisostds:scenario:military:data:draft:msdl:1"
+                  xmlns:modelID="http://www.sisostds.org/schemas/modelID">
     <ScenarioID>
-        <modelID:name>Simple scenario</modelID:name>
+        <modelID:name>Simple scenario 2</modelID:name>
         <modelID:type/>
         <modelID:version>0</modelID:version>
         <modelID:modificationDate>2012-11-13-05:00</modelID:modificationDate>
@@ -185,9 +186,9 @@
                 </Model>
             </Unit>
             <Unit>
-                <ObjectHandle>ff58e230-fecf-11e7-b297-fbee9593fdcc</ObjectHandle>
+                <ObjectHandle>13a68150-febe-11e7-b297-fbee95933333</ObjectHandle>
                 <SymbolIdentifier>S-G-UCI----F--G</SymbolIdentifier>
-                <Name>1th</Name>
+                <Name>3th</Name>
                 <UnitSymbolModifiers>
                     <Echelon>COMPANY</Echelon>
                     <CombatEffectiveness>GREEN</CombatEffectiveness>
@@ -199,8 +200,8 @@
                         <CoordinateChoice>GDC</CoordinateChoice>
                         <CoordinateData>
                             <GDC>
-                                <Latitude>58.5418344864538</Latitude>
-                                <Longitude>15.040111541748049</Longitude>
+                                <Latitude>58.543922896245405</Latitude>
+                                <Longitude>15.039854049682619</Longitude>
                                 <ElevationAGL/>
                             </GDC>
                         </CoordinateData>
@@ -227,7 +228,7 @@
                         <ForceRelationChoice>UNIT</ForceRelationChoice>
                         <ForceRelationData>
                             <CommandRelation>
-                                <CommandingSuperiorHandle>7a815ba0-febb-11e7-8be5-0ed5f89f718b
+                                <CommandingSuperiorHandle>7a81590c-febb-11e7-8be5-0ed5f89f718b
                                 </CommandingSuperiorHandle>
                                 <CommandRelationshipType>ATTACHED</CommandRelationshipType>
                             </CommandRelation>
@@ -300,6 +301,82 @@
                 <ObjectHandle>f9ee8509-2dcd-11e2-be2b-000c294c9df8</ObjectHandle>
                 <SymbolIdentifier>S-G-EVAT------G</SymbolIdentifier>
                 <Name>111</Name>
+                <EquipmentSymbolModifiers>
+                    <Quantity>1</Quantity>
+                    <CombatEffectiveness>GREEN</CombatEffectiveness>
+                    <UniqueDesignation>111</UniqueDesignation>
+                    <EquipmentType>M1A1</EquipmentType>
+                </EquipmentSymbolModifiers>
+                <Disposition>
+                    <Location>
+                        <CoordinateChoice>GDC</CoordinateChoice>
+                        <CoordinateData>
+                            <GDC>
+                                <Latitude>58.538208</Latitude>
+                                <Longitude>15.040084</Longitude>
+                                <ElevationAGL>137.71353</ElevationAGL>
+                            </GDC>
+                        </CoordinateData>
+                    </Location>
+                    <FormationPosition>
+                        <FormationOrder>1</FormationOrder>
+                    </FormationPosition>
+                </Disposition>
+                <Relations>
+                    <OrganicSuperiorHandle>f9e16593-2dcd-11e2-be2b-000c294c9df8</OrganicSuperiorHandle>
+                    <HoldingOrganization>
+                        <OwnerChoice>UNIT</OwnerChoice>
+                        <OwnerData>
+                            <UnitOwnerHandle>f9e16593-2dcd-11e2-be2b-000c294c9df8</UnitOwnerHandle>
+                        </OwnerData>
+                    </HoldingOrganization>
+                </Relations>
+                <Model>
+                    <Resolution>HIGH</Resolution>
+                </Model>
+            </EquipmentItem>
+            <EquipmentItem>
+                <ObjectHandle>f9ee8509-2dcd-11e2-be2b-000c294c2222</ObjectHandle>
+                <SymbolIdentifier>S-G-EVAT------G</SymbolIdentifier>
+                <Name>112</Name>
+                <EquipmentSymbolModifiers>
+                    <Quantity>1</Quantity>
+                    <CombatEffectiveness>GREEN</CombatEffectiveness>
+                    <UniqueDesignation>111</UniqueDesignation>
+                    <EquipmentType>M1A1</EquipmentType>
+                </EquipmentSymbolModifiers>
+                <Disposition>
+                    <Location>
+                        <CoordinateChoice>GDC</CoordinateChoice>
+                        <CoordinateData>
+                            <GDC>
+                                <Latitude>58.538208</Latitude>
+                                <Longitude>15.040084</Longitude>
+                                <ElevationAGL>137.71353</ElevationAGL>
+                            </GDC>
+                        </CoordinateData>
+                    </Location>
+                    <FormationPosition>
+                        <FormationOrder>1</FormationOrder>
+                    </FormationPosition>
+                </Disposition>
+                <Relations>
+                    <OrganicSuperiorHandle>f9e16593-2dcd-11e2-be2b-000c294c9df8</OrganicSuperiorHandle>
+                    <HoldingOrganization>
+                        <OwnerChoice>UNIT</OwnerChoice>
+                        <OwnerData>
+                            <UnitOwnerHandle>f9e16593-2dcd-11e2-be2b-000c294c9df8</UnitOwnerHandle>
+                        </OwnerData>
+                    </HoldingOrganization>
+                </Relations>
+                <Model>
+                    <Resolution>HIGH</Resolution>
+                </Model>
+            </EquipmentItem>
+            <EquipmentItem>
+                <ObjectHandle>f9ee8509-2dcd-11e2-be2b-000c294c333</ObjectHandle>
+                <SymbolIdentifier>S-G-EVAT------G</SymbolIdentifier>
+                <Name>113</Name>
                 <EquipmentSymbolModifiers>
                     <Quantity>1</Quantity>
                     <CombatEffectiveness>GREEN</CombatEffectiveness>

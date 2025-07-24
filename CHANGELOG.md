@@ -1,5 +1,91 @@
 # @orbat-mapper/msdllib
 
+## 0.25.0
+
+### Minor Changes
+
+- 112f94e: Add `MilitaryScenario.setItemRelation(.)` method that allows you to reorder unit and equipment in the ORBAT
+
+## 0.24.2
+
+### Patch Changes
+
+- 52d4eb7: Fix bug when setting unit or equipment disposition
+
+## 0.24.1
+
+### Patch Changes
+
+- 6924eb0: Add functions to `MilitaryScenario`:
+  - assignAllUnitsToFederate( fromFederateHandle: string, toFederateHandle: string): void
+  - assignAllEquipmentToFederate(fromFederateHandle: string, toFederateHandle: string): void
+
+  Add functions to `Federate`:
+  - addAllUnits(units: string[]): void
+  - addAllEquipment(equipment: string[]): void
+  - removeAllUnits(): void
+  - removeAllEquipment(): void
+
+## 0.24.0
+
+### Minor Changes
+
+- c24854e: Add `getItemHierarchy(.)` and `getItemParent(.)` methods to `MilitaryScenario` class
+- 59eb4b0: Add `superiorHandle` getter to `ForceSide` class (for consistency with units and equipment)
+
+## 0.23.1
+
+### Patch Changes
+
+- 62dd181: Bugfix in `Deployment` and `Federate` class where the `<Unit>` and `<EquipmentItem>` were missing a nested `<ObjectHandle>` tag
+
+## 0.23.0
+
+### Minor Changes
+
+- ea61a3e: Add `recursive` option to `Unit.setAffiliation(.)`
+
+## 0.22.1
+
+### Patch Changes
+
+- 135a312: Add functionality to assign a unit to another federate in a NETN deployment.
+
+  `Federate` class:
+  - `addUnit(unitHandle: string): void`
+  - `removeUnit(unitHandle: string): void`
+
+  `MilitaryScenario` class:
+  - `assignUnitToFederate(unitHandle: string, federateHandle: string): void`
+  - `getFederateById(objectHandle: string): Federate | undefined`
+  - `getFederateOfUnit(objectHandle: string): Federate | undefined`
+
+- 135a312: Add functionality to assign equipment to federates in a NETN deployment.
+
+  `Federate` class:
+  - `addEquipmentItem(equipmentItemHandle: string): void`
+  - `removeEquipmentItem(equipmentItemHandle: string): void`
+
+  `MilitaryScenario` class:
+  - `getFederateOfEquipment(objectHandle: string): Federate | undefined`
+  - `assignEquipmentItemToFederate(equipmentItemHandle: string, federateHandle: string): void`
+
+- 135a312: Add functions to `domutils.ts`:
+  - `createXMLElementWithValue(tagName: string, value: string | number | boolean): Element`
+  - `addChildElementWithValue(parent: Element, tagName: string, value: string | number | boolean): void`
+  - `addEmptyChildElement(parent: Element, tagName: string): void`
+
+## 0.22.0
+
+### Minor Changes
+
+- 75e9538: Add `MilitaryScenario.msdlOptions:MsdlOptions` attribute
+
+### Patch Changes
+
+- 1937cad: - Add function `addFederate` to `MilitaryScenario`
+  - Add `.prettierrc.json`
+
 ## 0.21.0
 
 ### Minor Changes

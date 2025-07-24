@@ -82,7 +82,7 @@ export class MsdlOptions implements MsdlOptionsType {
 
   set aggregateEchelon(aggregateEchelon: string) {
     this.#aggregateEchelon = aggregateEchelon;
-
+    
     let organizationDetailEl = this.ensureChild(this.element, "OrganizationDetail")
     setOrCreateTagValue(organizationDetailEl, "AggregateEchelon", aggregateEchelon);
   }
