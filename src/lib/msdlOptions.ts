@@ -217,7 +217,7 @@ export class MsdlOptions implements MsdlOptionsType {
   private ensureChild(element : Element, childName : string): Element {
     let child = element.querySelector(childName);
     if (!child) {
-      child = element.ownerDocument.createElement(childName);
+      child = createEmptyXMLElementFromTagName(childName);
       element.appendChild(child);
     }
     return child
